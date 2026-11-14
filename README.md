@@ -2,13 +2,14 @@
 
 Web app installabile (PWA), gratuita e senza account, per tracciare quello che mangi.
 
-- **Diario**: calorie, proteine, carboidrati, grassi e altri nutrienti a scelta, divisi per pasto. Puoi andare avanti e indietro tra i giorni e copiare un pasto da ieri.
+- **Diario**: calorie, proteine, carboidrati, grassi e altri nutrienti a scelta, divisi per pasto. Puoi andare avanti e indietro tra i giorni e copiare un pasto da ieri o da qualsiasi altro giorno.
+- **Pasti preferiti**: salvi un pasto con la stellina (es. la colazione tipo) e lo riaggiungi con un tocco, scegliendo quali voci tenere.
 - **Prodotti personali**: valori per 100 g o 100 ml, kcal calcolate in automatico o copiate dall'etichetta, porzioni con nome (es. "1 vasetto = 170 g"), etichette, nutrienti personalizzati (calcio, caffeina…).
 - **Ricette**: ingredienti, numero di porzioni e peso da cotto, così puoi registrarle a porzioni o a grammi.
 - **Dispensa e lista della spesa**: i prodotti che compri spesso, per reparto e frequenza; li metti in lista con un tocco e li registri nel diario dalla dispensa.
 - **Obiettivi**: calorie e macro fissi oppure diversi per giorno della settimana (es. allenamento/riposo), peso obiettivo con stima dei tempi.
-- **Progressi**: grafico del peso con media mobile a 7 giorni, calorie per giorno o settimana, misure corporee.
-- **Personalizza**: pasti (nomi e ordine), nutrienti visibili, elementi della schermata Diario, tema chiaro/scuro, backup ed esportazione CSV.
+- **Progressi**: grafico del peso con media mobile a 7 giorni; torta della ripartizione dei macro (oggi, media 7 giorni, 30 giorni o di sempre) confrontata con gli obiettivi; barre delle calorie divise per macro con le tacche degli obiettivi; misure corporee.
+- **Personalizza**: pasti (nomi e ordine), nutrienti visibili, elementi della schermata Diario, tema chiaro (predefinito) o scuro, backup ed esportazione CSV.
 
 I dati restano **solo sul telefono** di chi usa l'app (nel browser). Non c'è un server: ognuno ha i suoi dati.
 
@@ -45,7 +46,7 @@ Dopo la prima apertura funziona anche offline.
 Quando modifichi i file e li ricarichi su GitHub, apri `sw.js` e aumenta il numero di versione:
 
 ```js
-const VERSION = 'bilancino-v2';
+const VERSION = 'bilancino-v3';
 ```
 
 Al secondo avvio i telefoni scaricheranno la nuova versione. I dati degli utenti non vengono toccati.
