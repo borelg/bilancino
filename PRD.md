@@ -10,7 +10,7 @@
 | Repository | `https://github.com/borelg/bilancino` |
 | URL pubblico | `https://borelg.github.io/bilancino/` (GitHub Pages) |
 | Proprietario | Gabriele Borelli (`borelg`) |
-| Versione app | schema dati `v: 3` · service worker `bilancino-v3` |
+| Versione app | `APP_VERSION = 3` · schema dati `v: 3` · service worker `bilancino-v4` |
 | Ultimo aggiornamento PRD | 2026-11-21 (v3) |
 | Lingua dell'interfaccia | Italiano (unica lingua supportata) |
 
@@ -218,6 +218,14 @@ Stato: ✅ implementato · 🟡 parziale · ⬜ non implementato.
 | FR-SET-06 | Export del diario in CSV (separatore `;`, BOM UTF-8, virgola decimale: si apre bene in Excel italiano). | ✅ |
 | FR-SET-07 | Alimenti di esempio (16, valori indicativi, etichetta `esempio`). | ✅ |
 | FR-SET-08 | Cancellazione di tutti i dati con doppia conferma. | ✅ |
+| FR-SET-09 | Pulsante "Novità di questa versione" e numero di versione in fondo a Personalizza. | ✅ |
+
+### 4.10 Novità dopo un aggiornamento
+| ID | Requisito | Stato |
+|---|---|---|
+| FR-NEWS-01 | Al primo avvio dopo un aggiornamento, un pannello mostra le novità di tutte le versioni non ancora viste (`NEWS[v]` per `seenVersion < v ≤ APP_VERSION`). Ogni voce può portare alla schermata relativa. | ✅ |
+| FR-NEWS-02 | Il pannello compare **una sola volta**: `state.seenVersion` viene impostato ad `APP_VERSION` e salvato appena il pannello si apre. | ✅ |
+| FR-NEWS-03 | Chi installa l'app da zero non lo vede (ha il benvenuto): nei dati nuovi `seenVersion = APP_VERSION`. Chi aveva dati salvati prima di questa funzione (`seenVersion` assente) è trattato come utente della v2 e vede le novità della v3. | ✅ |
 
 ---
 
@@ -407,6 +415,7 @@ interface State {
     planChecked: Record<string /*productId*/, boolean>;           // presi tra gli alimenti del piano
   };
   welcomeDone: boolean;
+  seenVersion: number;                                           // ultima versione di cui sono state mostrate le novità
 }
 
 interface Product {
@@ -532,7 +541,8 @@ SVG generati come stringa, con `viewBox` fisso (340 px di larghezza) e `width: 1
 ## 8. Processo di rilascio
 
 1. Implementa e verifica (§9).
-2. In `sw.js` incrementa `VERSION` (es. `bilancino-v3` → `bilancino-v4`).
+2. In `sw.js` incrementa `VERSION` (es. `bilancino-v4` → `bilancino-v5`). Va fatto a **ogni** pubblicazione, anche per una correzione.
+2b. Se la versione ha novità da far vedere agli utenti: incrementa `APP_VERSION` in `js/app.js` e aggiungi `NEWS[<nuovo numero>]` con 2–5 voci `{ icon, title, text, href? }` (testi brevi, in italiano, rivolti all'utente). Non modificare le voci delle versioni precedenti.
 3. Se lo schema dati cambia: incrementa `state.v` e aggiungi la migrazione.
 4. Aggiorna `README.md` (funzioni per l'utente) e questo `PRD.md` (requisiti, architettura, changelog).
 5. Commit con un messaggio in italiano che riassume le modifiche e cita gli ID dei requisiti.
@@ -559,6 +569,7 @@ SVG generati come stringa, con `viewBox` fisso (340 px di larghezza) e `width: 1
 10. **Migrazione:** carica un backup o uno stato delle versioni precedenti (`v: 1`, `v: 2`) e verifica che tutti i dati preesistenti restino identici.
 11. Libreria: crea e modifica alimenti e ricette da "Alimenti"; controlla l'ordine alfabetico in libreria e in Aggiungi (Recenti escluso); modifica un preferito.
 12. Piano: pianifica ricetta, preferito e alimento su due giorni; controlla la spesa (ingredienti scomposti, quantità in casa sottratta); "Fine spesa" aumenta la quantità in casa; "Dal piano" nel diario registra e la fa scendere.
+14. Novità: con dati di una versione precedente il pannello compare al primo avvio e non più alla riapertura; con dati nuovi non compare; da Personalizza si riapre.
 13. TDEE: con meno di 14 giornate o 4 pesate mostra i progressi; con dati sufficienti propone la correzione; "Applica" cambia tutti i tipi di giornata e fa sparire l'avviso nel Diario.
 
 ---
@@ -606,7 +617,7 @@ Tutto deve rispettare i vincoli C-1…C-4. Priorità: **P1** alta, **P2** media,
 |---|---|---|
 | v1 (`d096fb0`) | 2026-11-13 | Prima versione: diario, prodotti, ricette, dispensa/spesa, obiettivi, progressi, personalizzazione, backup, offline. |
 | v2 (`6678b57`) | 2026-11-14 | Feedback utenti: niente suggerimenti del browser sui campi numerici (FR-PRO-08); barre calorie impilate per macro con tacche obiettivo e dettaglio al tocco (FR-PRG-05/06); torta dei macro con periodi (FR-PRG-04); pasti preferiti e copia da data (FR-FAV-*); tema chiaro predefinito con migrazione v1→v2; toast in alto. |
-| v3 | 2026-11-21 | "Prodotti" diventa "alimenti" in tutta l'interfaccia; libreria **Alimenti e ricette** al posto di Dispensa nella barra in basso, con la Dispensa come scheda (FR-LIB-*); ordine alfabetico ovunque tranne in Recenti (FR-ADD-03); periodo 1 settimana nei Progressi (FR-PRG-01); **TDEE adattivo** (FR-TDEE-*); **piano pasti settimanale con spesa automatica** e quantità in casa (FR-PLAN-*, FR-DIS-05/06, FR-PRO-09); migrazione v2→v3 solo additiva, verificata su dati reali della v2. |
+| v3 | 2026-11-21 | "Prodotti" diventa "alimenti" in tutta l'interfaccia; libreria **Alimenti e ricette** al posto di Dispensa nella barra in basso, con la Dispensa come scheda (FR-LIB-*); ordine alfabetico ovunque tranne in Recenti (FR-ADD-03); periodo 1 settimana nei Progressi (FR-PRG-01); **TDEE adattivo** (FR-TDEE-*); **piano pasti settimanale con spesa automatica** e quantità in casa (FR-PLAN-*, FR-DIS-05/06, FR-PRO-09); migrazione v2→v3 solo additiva, verificata su dati reali della v2. Pannello **"Novità"** mostrato una sola volta dopo l'aggiornamento (FR-NEWS-*), service worker `bilancino-v4`. |
 
 ---
 

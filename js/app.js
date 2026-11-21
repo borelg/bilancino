@@ -55,6 +55,20 @@ const ICONS = {
 };
 const ic = (n, s = 22, w = 2) => `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[n] || ''}</svg>`;
 
+/* ---------- versione e novità ----------
+   APP_VERSION va incrementato quando si pubblica una versione con novità da mostrare,
+   aggiungendo la voce corrispondente in NEWS. */
+const APP_VERSION = 3;
+const NEWS = {
+  3: [
+    { icon: 'bowl', title: 'Alimenti e ricette', text: 'Nuova voce nella barra in basso: crei e modifichi alimenti, ricette e pasti preferiti senza passare dai pasti. La Dispensa ora è una scheda qui dentro.', href: '#/alimenti' },
+    { icon: 'plan', title: 'Piano pasti settimanale', text: 'Distribuisci ricette e preferiti sui giorni della settimana e registrali con un tocco. Lo apri dall’icona del calendario in alto nel Diario.', href: '#/piano' },
+    { icon: 'basket', title: 'Lista della spesa automatica', text: 'Somma gli ingredienti di quello che hai pianificato e toglie quello che hai già in casa.', href: '#/spesa' },
+    { icon: 'chart', title: 'Dispendio reale', text: 'Dopo qualche settimana di diario e pesate, l’app stima quante calorie bruci davvero e ti propone di correggere gli obiettivi.', href: '#/progressi' },
+    { icon: 'list', title: 'Piccole migliorie', text: 'Elenchi in ordine alfabetico (tranne Recenti), periodo di 1 settimana nei Progressi, e i “prodotti” ora si chiamano “alimenti”.' },
+  ],
+};
+
 /* ---------- stato ---------- */
 function defaultState() {
   return {
@@ -97,6 +111,7 @@ function defaultState() {
     plan: {},
     tdee: { lastReview: null, history: [] },
     welcomeDone: false,
+    seenVersion: APP_VERSION, // chi parte da zero non vede le novità (ha già il benvenuto)
   };
 }
 
@@ -105,6 +120,8 @@ function load() {
     const raw = localStorage.getItem(KEY);
     if (!raw) return defaultState();
     const s = JSON.parse(raw);
+    // utenti che esistevano prima delle "novità" (fino alla v2): non le hanno mai viste
+    if (s.seenVersion === undefined) s.seenVersion = Math.min(s.v || 1, 2);
     const d = defaultState();
     // completa eventuali campi mancanti (versioni future)
     for (const k of Object.keys(d)) if (s[k] === undefined) s[k] = d[k];
@@ -1696,8 +1713,29 @@ SCREENS.personalizza = function () {
     <p class="small muted" style="margin:0">I dati sono salvati solo in questo browser, su questo telefono. Fai un backup ogni tanto: se cancelli i dati del browser o cambi telefono, lo reimporti da qui.</p>
     <button class="btn danger sm" data-act="resetAll">Cancella tutti i dati</button>
   </div>
-  <p class="small muted" style="text-align:center">Bilancino · gratis, senza account e senza pubblicità</p>`;
+  <button class="btn soft sm" data-act="newsShow">Novità di questa versione</button>
+  <p class="small muted" style="text-align:center">Bilancino · versione ${APP_VERSION} · gratis, senza account e senza pubblicità</p>`;
 };
+
+/* ---------- popup delle novità ---------- */
+function newsHtml(versions) {
+  const items = versions.flatMap((v) => NEWS[v] || []);
+  return `<div class="stack" style="gap:2px"><span class="small muted" style="font-weight:600">Bilancino si è aggiornato</span><h2 style="font-size:22px">Le novità di questa versione</h2></div>
+  <ul class="list">${items.map((it) => {
+    const inner = `<span class="icon-btn soft" style="flex:0 0 auto" aria-hidden="true">${ic(it.icon, 22)}</span>
+      <span class="grow" style="min-width:0"><span class="t" style="display:block">${esc(it.title)}</span><span class="s" style="display:block;font-size:13px;line-height:1.35">${esc(it.text)}</span></span>
+      ${it.href ? `<span style="color:var(--muted)">${ic('right', 18)}</span>` : ''}`;
+    return `<li>${it.href ? `<button class="li" data-act="newsGo" data-href="${esc(it.href)}" style="align-items:flex-start">${inner}</button>` : `<div class="li" style="align-items:flex-start">${inner}</div>`}</li>`;
+  }).join('')}</ul>
+  <button class="btn block" data-act="sheetClose" style="height:52px">Ho capito</button>`;
+}
+function showNews(force) {
+  const from = force ? APP_VERSION - 1 : (state.seenVersion || 0);
+  const versions = Object.keys(NEWS).map(Number).filter((v) => v > from && v <= APP_VERSION).sort((a, b) => a - b);
+  state.seenVersion = APP_VERSION; save(true);   // segnata come vista subito: non ricompare più
+  if (!versions.length) return;
+  openSheet(newsHtml(versions), { type: 'news' });
+}
 
 /* ================================================================
    AZIONI (click)
@@ -1771,6 +1809,8 @@ const ACT = {
   },
   back() { history.length > 1 ? history.back() : go('#/oggi'); },
   sheetClose() { closeSheet(); },
+  newsShow() { showNews(true); },
+  newsGo(el) { closeSheet(true); go(el.dataset.href); },
   libTab(el) { ui.libTab = el.dataset.tab; ui.libQ = ''; history.replaceState(null, '', `#/alimenti?tab=${ui.libTab}`); render(); },
   // piano pasti
   planWeek(el) { const d = +el.dataset.d; ui.planWeek = d ? addDays(ui.planWeek || mondayOf(today()), d) : mondayOf(today()); render(); },
@@ -2172,8 +2212,10 @@ const EXAMPLES = [
 
 /* ---------- avvio ---------- */
 ui.meal = guessMeal();
+const showNewsAtStart = (state.seenVersion || 0) < APP_VERSION;
 document.documentElement.dataset.theme = state.settings.theme || 'light';
 render();
+if (showNewsAtStart) setTimeout(() => { if (!ui.sheet) showNews(); }, 350);
 // il giorno cambia a mezzanotte: se l'app resta aperta, aggiorna "oggi"
 let lastToday = today();
 setInterval(() => { const t = today(); if (t !== lastToday) { if (ui.date === lastToday) ui.date = t; lastToday = t; if (parseHash().route === 'oggi') render(); } }, 60000);

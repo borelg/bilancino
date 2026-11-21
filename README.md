@@ -50,10 +50,12 @@ Dopo la prima apertura funziona anche offline.
 Quando modifichi i file e li ricarichi su GitHub, apri `sw.js` e aumenta il numero di versione:
 
 ```js
-const VERSION = 'bilancino-v4';
+const VERSION = 'bilancino-v5';
 ```
 
 Al secondo avvio i telefoni scaricheranno la nuova versione. I dati degli utenti non vengono toccati.
+
+Se vuoi mostrare agli utenti un pannello con le novità (una sola volta, al primo avvio dopo l'aggiornamento), in `js/app.js` aumenta anche `APP_VERSION` e aggiungi le voci in `NEWS` con lo stesso numero.
 
 ## Backup dei dati
 
