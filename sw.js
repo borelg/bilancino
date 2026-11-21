@@ -1,6 +1,6 @@
 /* Service worker: rende l'app utilizzabile offline.
    Quando pubblichi una nuova versione, aumenta il numero qui sotto. */
-const VERSION = 'bilancino-v2';
+const VERSION = 'bilancino-v3';
 const ASSETS = [
   './',
   './index.html',
