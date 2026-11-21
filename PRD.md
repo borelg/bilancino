@@ -10,7 +10,7 @@
 | Repository | `https://github.com/borelg/bilancino` |
 | URL pubblico | `https://borelg.github.io/bilancino/` (GitHub Pages) |
 | Proprietario | Gabriele Borelli (`borelg`) |
-| Versione app | `APP_VERSION = 3` · schema dati `v: 3` · service worker `bilancino-v4` |
+| Versione app | `APP_VERSION = 3` · schema dati `v: 3` · service worker `bilancino-v5` |
 | Ultimo aggiornamento PRD | 2026-11-21 (v3) |
 | Lingua dell'interfaccia | Italiano (unica lingua supportata) |
 
@@ -492,9 +492,14 @@ interface Favorite {
 
 ### 6.9 Service worker e PWA
 
-- **Precache** all'installazione: `./`, `index.html`, CSS, JS, manifest, icone. Poi `skipWaiting()` e `clients.claim()`.
-- **Fetch:** solo GET dello stesso dominio, **stale-while-revalidate**. Risponde subito dalla cache (ignorando la query string) e intanto aggiorna la cache dalla rete. Se il file non è in cache usa la rete; offline, una navigazione riceve `index.html`.
-- **Aggiornamenti:** il nome della cache è `VERSION` in `sw.js`. Va incrementato **a ogni rilascio**: le vecchie cache vengono eliminate in `activate`. L'utente vede la nuova versione alla seconda apertura.
+- **Precache** all'installazione: `./`, `index.html`, CSS, JS, manifest, icone, scaricati con `cache: 'reload'`. Non si usa mai la cache HTTP del browser: GitHub Pages la imposta a circa 10 minuti, e senza questo accorgimento una nuova versione poteva salvare in cache i file vecchi. Poi `skipWaiting()` e `clients.claim()`.
+- **Fetch:** solo GET dello stesso dominio, **stale-while-revalidate**. Risponde subito dalla cache (ignorando la query string) e intanto la aggiorna dalla rete con `cache: 'no-cache'` (rivalida con il server tramite ETag). Se il file non è in cache usa la rete; offline, una navigazione riceve `index.html`.
+- **Aggiornamenti:** il nome della cache è `VERSION` in `sw.js`. Va incrementato **a ogni rilascio**: le vecchie cache vengono eliminate in `activate`. In `app.js`, all'evento `controllerchange` (nuovo service worker attivo) la pagina **si ricarica da sola**, così l'utente vede la nuova versione già alla prima apertura. Fanno eccezione:
+  - il primissimo avvio (non c'era un controller), quando non si ricarica nulla;
+  - un pannello aperto o la modifica di un alimento o di una ricetta in corso: in quel caso compare un toast "È disponibile una nuova versione · Aggiorna".
+
+  Quando l'app torna in primo piano chiama `reg.update()`, perché l'app installata può restare aperta in background per giorni.
+- **Verifica degli aggiornamenti:** test con un server che invia `Cache-Control: max-age=600` (come GitHub Pages) e un profilo browser persistente. Si pubblica la versione N, la si apre, si pubblica la N+1 e si riapre la pagina passando da `about:blank` (un `goto` sullo stesso URL con `#` non ricarica). La N+1 deve comparire alla prima apertura.
 - **Manifest:** `display: standalone`, `start_url` e `scope` = `./`, colori `#1F7A4D` / `#F4F5F1`, icona maskable separata.
 
 ### 6.10 Stile e temi
@@ -617,7 +622,7 @@ Tutto deve rispettare i vincoli C-1…C-4. Priorità: **P1** alta, **P2** media,
 |---|---|---|
 | v1 (`d096fb0`) | 2026-11-13 | Prima versione: diario, prodotti, ricette, dispensa/spesa, obiettivi, progressi, personalizzazione, backup, offline. |
 | v2 (`6678b57`) | 2026-11-14 | Feedback utenti: niente suggerimenti del browser sui campi numerici (FR-PRO-08); barre calorie impilate per macro con tacche obiettivo e dettaglio al tocco (FR-PRG-05/06); torta dei macro con periodi (FR-PRG-04); pasti preferiti e copia da data (FR-FAV-*); tema chiaro predefinito con migrazione v1→v2; toast in alto. |
-| v3 | 2026-11-21 | "Prodotti" diventa "alimenti" in tutta l'interfaccia; libreria **Alimenti e ricette** al posto di Dispensa nella barra in basso, con la Dispensa come scheda (FR-LIB-*); ordine alfabetico ovunque tranne in Recenti (FR-ADD-03); periodo 1 settimana nei Progressi (FR-PRG-01); **TDEE adattivo** (FR-TDEE-*); **piano pasti settimanale con spesa automatica** e quantità in casa (FR-PLAN-*, FR-DIS-05/06, FR-PRO-09); migrazione v2→v3 solo additiva, verificata su dati reali della v2. Pannello **"Novità"** mostrato una sola volta dopo l'aggiornamento (FR-NEWS-*), service worker `bilancino-v4`. |
+| v3 | 2026-11-21 | "Prodotti" diventa "alimenti" in tutta l'interfaccia; libreria **Alimenti e ricette** al posto di Dispensa nella barra in basso, con la Dispensa come scheda (FR-LIB-*); ordine alfabetico ovunque tranne in Recenti (FR-ADD-03); periodo 1 settimana nei Progressi (FR-PRG-01); **TDEE adattivo** (FR-TDEE-*); **piano pasti settimanale con spesa automatica** e quantità in casa (FR-PLAN-*, FR-DIS-05/06, FR-PRO-09); migrazione v2→v3 solo additiva, verificata su dati reali della v2. Pannello **"Novità"** mostrato una sola volta dopo l'aggiornamento (FR-NEWS-*), service worker `bilancino-v5` con aggiornamento affidabile: niente file vecchi dalla cache HTTP e ricaricamento automatico quando la nuova versione è pronta. |
 
 ---
 

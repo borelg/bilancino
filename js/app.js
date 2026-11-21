@@ -2220,6 +2220,20 @@ if (showNewsAtStart) setTimeout(() => { if (!ui.sheet) showNews(); }, 350);
 let lastToday = today();
 setInterval(() => { const t = today(); if (t !== lastToday) { if (ui.date === lastToday) ui.date = t; lastToday = t; if (parseHash().route === 'oggi') render(); } }, 60000);
 if ('serviceWorker' in navigator && location.protocol !== 'file:') {
-  window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(() => {}));
+  // Aggiornamenti: quando una nuova versione è pronta, ricarica subito (così si vede alla prima apertura).
+  // Se l'utente sta modificando qualcosa, non lo interrompe: propone di aggiornare con un pulsante.
+  const hadController = !!navigator.serviceWorker.controller;   // false al primissimo avvio: niente ricarica
+  let reloading = false;
+  const reloadNow = () => { if (reloading) return; reloading = true; save(true); location.reload(); };
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (!hadController || reloading) return;
+    const busy = ui.sheet || ['prodotto', 'ricetta'].includes(parseHash().route);
+    if (busy) toast('È disponibile una nuova versione', { label: 'Aggiorna', fn: reloadNow });
+    else reloadNow();
+  });
+  window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').then((reg) => {
+    // l'app installata può restare aperta in background: controlla gli aggiornamenti quando torna in primo piano
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) reg.update().catch(() => {}); });
+  }).catch(() => {}));
 }
 if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});

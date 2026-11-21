@@ -1,6 +1,6 @@
 /* Service worker: rende l'app utilizzabile offline.
    Quando pubblichi una nuova versione, aumenta il numero qui sotto. */
-const VERSION = 'bilancino-v4';
+const VERSION = 'bilancino-v5';
 const ASSETS = [
   './',
   './index.html',
@@ -13,7 +13,10 @@ const ASSETS = [
 ];
 
 self.addEventListener('install', (e) => {
-  e.waitUntil(caches.open(VERSION).then((c) => c.addAll(ASSETS)).then(() => self.skipWaiting()));
+  // cache: 'reload' = scarica dal server, mai dalla cache HTTP del browser (che potrebbe avere i file vecchi)
+  e.waitUntil(caches.open(VERSION)
+    .then((c) => c.addAll(ASSETS.map((u) => new Request(u, { cache: 'reload' }))))
+    .then(() => self.skipWaiting()));
 });
 
 self.addEventListener('activate', (e) => {
@@ -31,7 +34,7 @@ self.addEventListener('fetch', (e) => {
   e.respondWith(
     caches.open(VERSION).then(async (cache) => {
       const cached = await cache.match(req, { ignoreSearch: true });
-      const network = fetch(req)
+      const network = fetch(req, { cache: 'no-cache' }) // ricontrolla sempre col server (ETag: se non è cambiato non riscarica)
         .then((res) => { if (res && res.ok) cache.put(req, res.clone()); return res; })
         .catch(() => null);
       if (cached) { e.waitUntil(network); return cached; }
